@@ -71,4 +71,64 @@ $ rosservice call last_target True
 $ rosservice call distance_from_goal True
 ```
 
-## Flowchart 
+
+## Algorithm Overview
+
+This section provides a high-level overview of the algorithm used in the code. Below is a pseudocode representation of the main functionalities.
+
+### Initialization and Setup
+
+```pseudocode
+# Initialize ROS node and action client
+rospy.init_node('user_interface')
+client = new SimpleActionClient('/reaching_goal', PlanningAction)
+client.wait_for_server()
+
+# Set up publishers and subscribers
+robot_state_publisher = new Publisher('/Coordinates_velocity', Coordinates_velocity, queue_size=1)
+odom_subscriber = new Subscriber('/odom', Odometry, odom_callback, robot_state_publisher, queue_size=1)
+
+### Goal Setting and User Interaction
+
+WHILE not rospy.is_shutdown():
+    rospy.sleep(1)
+    x = GET_USER_INPUT("Enter x coordinate for the goal: ")
+    y = GET_USER_INPUT("Enter y coordinate for the goal: ")
+    set_goal(client, x, y)
+
+    WHILE not rospy.is_shutdown():
+        rospy.sleep(1)
+        goal_status = client.get_state()
+
+        IF goal_status == GoalStatus.ACTIVE:
+            PRINT "Goal is active."
+            cancel_input = GET_USER_INPUT("Do you want to cancel the goal? (yes/no): ").lower()
+
+            IF cancel_input == "yes":
+                success = cancel_goal(client)
+                IF success:
+                    PRINT "Goal successfully canceled."
+                    BREAK
+                ELSE:
+                    PRINT "Failed to cancel goal."
+                    BREAK
+        ELIF goal_status == GoalStatus.SUCCEEDED:
+            PRINT "Goal is reached."
+            BREAK
+        ELIF goal_status == GoalStatus.ABORTED:
+            PRINT "Goal is canceled."
+            BREAK
+        ELIF goal_status != GoalStatus.ACTIVE:
+            PRINT "Failed to set the goal."
+            BREAK
+
+    PRINT "Set a new goal."
+
+###Exception Handling
+
+IF __name__ == '__main__':
+    TRY:
+        main()
+    EXCEPT rospy.ROSInterruptException:
+        PRINT "Program interrupted before completion."
+        PASS
